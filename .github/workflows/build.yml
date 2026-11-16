@@ -20,7 +20,23 @@ jobs:
           gradle-version: 8.7
 
       - name: Build debug APK
-        run: gradle assembleDebug --stacktrace
+        run: |
+          set +e
+          gradle assembleDebug --console=plain --stacktrace > build.log 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then
+            echo "===== ERROR SUMMARY =====" 
+            grep -n -E "error:|What went wrong|Could not|FAILED|Execution failed|AAPT|Caused by" build.log | head -40 | while read -r l; do echo "::error::$l"; done
+            grep -A12 "What went wrong" build.log | head -30
+          fi
+          exit $code
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
 
       - uses: actions/upload-artifact@v4
         with:
